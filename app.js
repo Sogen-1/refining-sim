@@ -74,18 +74,18 @@ function validateInputs(){
   return true;
 }
 var progressTimer=null;
-function showLoading(){var ov=document.getElementById('loadingOverlay');ov.style.display='block';document.getElementById('progressBar').style.width='0%';document.getElementById('loadingPct').textContent='0%';document.getElementById('loadingStage').textContent='连接服务器...';var btn=document.querySelector('.btn-p');btn.disabled=true;btn.textContent='计算中...'}
-function hideLoading(){var ov=document.getElementById('loadingOverlay');ov.style.display='none';clearInterval(progressTimer);var btn=document.querySelector('.btn-p');btn.disabled=false;btn.textContent='▶ 运行全流程模拟'}
+function showLoading(){var ov=document.getElementById('loadingOverlay');ov.style.display='block';document.getElementById('progressBar').style.width='0%';document.getElementById('loadingPct').textContent='0%';document.getElementById('loadingStage').textContent=tr('connecting');var btn=document.querySelector('.btn-p');btn.disabled=true;btn.textContent=tr('loading')}
+function hideLoading(){var ov=document.getElementById('loadingOverlay');ov.style.display='none';clearInterval(progressTimer);var btn=document.querySelector('.btn-p');btn.disabled=false;btn.textContent=tr('run')}
 function updateProgress(pct,stage){document.getElementById('progressBar').style.width=pct+'%';document.getElementById('loadingPct').textContent=pct+'%';if(stage)document.getElementById('loadingStage').textContent=stage}
 
-function startProgress(){updateProgress(0,'正在连接...');var elapsed=0;var stages=['脱胶工段计算中...','碱炼脱酸计算中...','脱色工段计算中...','脱臭工段计算中...','生成优化建议...','加载高级分析...'];progressTimer=setInterval(function(){elapsed+=200;
-  if(elapsed<1500){updateProgress(Math.min(15,elapsed/1500*15),stages[0])}
-  else if(elapsed<3000){updateProgress(15+Math.min(25,(elapsed-1500)/1500*25),stages[1])}
-  else if(elapsed<4500){updateProgress(40+Math.min(25,(elapsed-3000)/1500*25),stages[2])}
-  else if(elapsed<6000){updateProgress(65+Math.min(20,(elapsed-4500)/1500*25),stages[3])}
-  else if(elapsed<7500){updateProgress(85+Math.min(10,(elapsed-6000)/1500*10),stages[4])}
-  else if(elapsed<9000){updateProgress(95+Math.min(5,(elapsed-7500)/1500*5),stages[5])}
-  else{updateProgress(99,'即将完成...')}
+function startProgress(){var st=(T[LANG]||T['zh']).stages||['Degumming...','Neutralizing...','Bleaching...','Deodorizing...','Generating advice...','Loading analytics...'];updateProgress(0,tr('connecting'));var elapsed=0;progressTimer=setInterval(function(){elapsed+=200;
+  if(elapsed<1500){updateProgress(Math.min(15,elapsed/1500*15),st[0])}
+  else if(elapsed<3000){updateProgress(15+Math.min(25,(elapsed-1500)/1500*25),st[1])}
+  else if(elapsed<4500){updateProgress(40+Math.min(25,(elapsed-3000)/1500*25),st[2])}
+  else if(elapsed<6000){updateProgress(65+Math.min(20,(elapsed-4500)/1500*25),st[3])}
+  else if(elapsed<7500){updateProgress(85+Math.min(10,(elapsed-6000)/1500*10),st[4])}
+  else if(elapsed<9000){updateProgress(95+Math.min(5,(elapsed-7500)/1500*5),st[5])}
+  else{updateProgress(99,'...')}
 },200)}
 
 async function run(){
