@@ -1,5 +1,40 @@
 var LANG='zh';
-var T={zh:{title:"油脂精炼工艺模拟引擎",stages:["脱胶工段计算中...","碱炼脱酸计算中...","脱色工段计算中...","脱臭工段计算中...","生成优化建议...","加载高级分析..."],yieldL:"精炼得率",lossL:"总油损",avL:"成品酸价 AV",colorL:"成品色泽 (罗维朋)",emptyMsg:"设置工艺参数后点击运行",connecting:"连接服务器...",loading:"正在运行模拟...",done:"完成!",run:"▶ 运行全流程模拟",noSaved:"暂无保存的方案",clearAll:"清空全部",severe:"严重",warning:"需关注",noteFmt:"💡 {0}"},en:{title:"Edible Oil Refining Simulator",stages:["Degumming...","Neutralizing...","Bleaching...","Deodorizing...","Generating advice...","Loading analytics..."],yieldL:"Refining Yield",lossL:"Total Oil Loss",avL:"Product AV",colorL:"Product Color (Lovibond)",emptyMsg:"Set parameters and run simulation",connecting:"Connecting...",loading:"Running...",done:"Done!",run:"▶ Run Simulation",noSaved:"No saved scenarios",clearAll:"Clear All",severe:"Critical",warning:"Warning",noteFmt:"💡 {0}"},ru:{title:"Симулятор рафинации масел",stages:["Дегумминг...","Нейтрализация...","Отбелка...","Дезодорация...","Анализ...","Расширенная аналитика..."],yieldL:"Выход рафинации",lossL:"Общие потери",avL:"Кислотное число",colorL:"Цвет (Ловибонд)",emptyMsg:"Задайте параметры и запустите расчет",connecting:"Подключение...",loading:"Расчет...",done:"Готово!",run:"▶ Запустить расчет",noSaved:"Нет сохраненных",clearAll:"Очистить",severe:"Критично",warning:"Внимание",noteFmt:"💡 {0}"}};
+var T={
+zh:{title:"油脂精炼工艺模拟引擎",stages:["脱胶工段计算中...","碱炼脱酸计算中...","脱色工段计算中...","脱臭工段计算中...","生成优化建议...","加载高级分析..."],yieldL:"精炼得率",lossL:"总油损",avL:"成品酸价 AV",colorL:"成品色泽 (罗维朋 1\")",emptyMsg:"设置工艺参数后点击运行",connecting:"连接服务器...",loading:"正在运行模拟...",done:"完成!",run:"▶ 运行全流程模拟",severe:"严重",warning:"需关注",labels:["油种选择","批量 (吨)","酸价 AV (mgKOH/g)","总磷 (ppm)","非水化磷脂占比","脱胶方式","精炼路线","磷酸添加量 (%)","超量碱 (%)","脱蜡 (葵花/玉米/米糠油)"],oils:{大豆油:"大豆油",菜籽油:"菜籽油",花生油:"花生油",葵花籽油:"葵花籽油",玉米油:"玉米油",棉籽油:"棉籽油",棕榈油:"棕榈油",米糠油:"米糠油"},degums:{acid:"酸法脱胶",water:"水化脱胶",super:"超级脱胶",enzymatic:"酶法脱胶"},routes:{chemical:"化学精炼 (碱炼)",physical:"物理精炼 (跳过碱炼)"},wax:{false:"否",true:"是"}},
+en:{title:"Edible Oil Refining Simulator",stages:["Degumming...","Neutralizing...","Bleaching...","Deodorizing...","Generating advice...","Loading analytics..."],yieldL:"Refining Yield",lossL:"Total Oil Loss",avL:"Product AV",colorL:"Product Color (Lovibond 1\")",emptyMsg:"Set parameters and run simulation",connecting:"Connecting...",loading:"Running...",done:"Done!",run:"▶ Run Simulation",severe:"Critical",warning:"Warning",labels:["Oil Type","Batch (ton)","Acid Value (mgKOH/g)","Phosphorus (ppm)","NHP Ratio","Degumming Method","Refining Route","Phosphoric Acid (%)","Excess Lye (%)","Winterization"],oils:{大豆油:"Soybean Oil",菜籽油:"Rapeseed Oil",花生油:"Peanut Oil",葵花籽油:"Sunflower Oil",玉米油:"Corn Oil",棉籽油:"Cottonseed Oil",棕榈油:"Palm Oil",米糠油:"Rice Bran Oil"},degums:{acid:"Acid Degumming",water:"Water Degumming",super:"Super Degumming",enzymatic:"Enzymatic Degumming"},routes:{chemical:"Chemical Refining",physical:"Physical Refining"},wax:{false:"No",true:"Yes"}},
+ru:{title:"Симулятор рафинации масел",stages:["Дегумминг...","Нейтрализация...","Отбелка...","Дезодорация...","Анализ...","Расширенная аналитика..."],yieldL:"Выход рафинации",lossL:"Общие потери",avL:"Кислотное число",colorL:"Цвет (Ловибонд 1\")",emptyMsg:"Задайте параметры и запустите расчет",connecting:"Подключение...",loading:"Расчет...",done:"Готово!",run:"▶ Запустить расчет",severe:"Критично",warning:"Внимание",labels:["Тип масла","Партия (т)","Кислотное число (мгKOH/г)","Фосфор (ppm)","Доля НГФ","Метод дегумминга","Способ рафинации","Фосфорная кислота (%)","Избыток щелочи (%)","Винтеризация"],oils:{大豆油:"Соевое",菜籽油:"Рапсовое",花生油:"Арахисовое",葵花籽油:"Подсолнечное",玉米油:"Кукурузное",棉籽油:"Хлопковое",棕榈油:"Пальмовое",米糠油:"Рисовое"},degums:{acid:"Кислотный",water:"Водный",super:"Глубокий",enzymatic:"Ферментативный"},routes:{chemical:"Химическая",physical:"Физическая"},wax:{false:"Нет",true:"Да"}}
+};
+
 function tr(k){var d=T[LANG]||T.zh;return d[k]||k}
+
 function setLang(lang){LANG=lang;localStorage.setItem('refining_lang',lang);location.reload()}
-window.addEventListener('DOMContentLoaded',function(){try{var s=localStorage.getItem('refining_lang');if(s)LANG=s}catch(e){}var d=T[LANG]||T.zh;document.title=d.title;var ol=document.getElementById('oilType');if(ol){var oils=T.zh.oils||{大豆油:"大豆油",菜籽油:"菜籽油",花生油:"花生油",葵花籽油:"葵花籽油",玉米油:"玉米油",棉籽油:"棉籽油",棕榈油:"棕榈油",米糠油:"米糠油"};if(LANG==='en')oils={大豆油:"Soybean Oil",菜籽油:"Rapeseed Oil",花生油:"Peanut Oil",葵花籽油:"Sunflower Oil",玉米油:"Corn Oil",棉籽油:"Cottonseed Oil",棕榈油:"Palm Oil",米糠油:"Rice Bran Oil"};if(LANG==='ru')oils={大豆油:"Соевое",菜籽油:"Рапсовое",花生油:"Арахисовое",葵花籽油:"Подсолнечное",玉米油:"Кукурузное",棉籽油:"Хлопковое",棕榈油:"Пальмовое",米糠油:"Рисовое"};while(ol.firstChild)ol.removeChild(ol.firstChild);for(var k in oils){var o=document.createElement('option');o.value=k;o.textContent=oils[k];ol.appendChild(o)}}});
+
+function rebuildSelect(el, opts, selectedVal){
+  if(!el)return;
+  var cur=selectedVal||el.value;
+  while(el.firstChild)el.removeChild(el.firstChild);
+  for(var k in opts){var o=document.createElement('option');o.value=k;o.textContent=opts[k];if(k===cur||String(k)===String(cur))o.selected=true;el.appendChild(o)}
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  try{var s=localStorage.getItem('refining_lang');if(s)LANG=s}catch(e){}
+  var d=T[LANG]||T.zh;
+  document.title=d.title;
+
+  // Labels
+  var ls=document.querySelectorAll('.fg label');
+  var keys=d.labels||[];
+  for(var i=0;i<Math.min(ls.length,keys.length);i++)ls[i].textContent=keys[i];
+
+  // Oil type
+  rebuildSelect(document.getElementById('oilType'), d.oils);
+
+  // Degum type
+  rebuildSelect(document.getElementById('degum'), d.degums);
+
+  // Route
+  rebuildSelect(document.getElementById('route'), d.routes);
+
+  // Wax
+  rebuildSelect(document.getElementById('wax'), d.wax, document.getElementById('wax')?.value||'0');
+});
