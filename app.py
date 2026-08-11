@@ -22,8 +22,11 @@ from optimizer import get_smart_defaults, build_optimized_params, compare_params
 from advanced import monte_carlo_sim, calculate_carbon_footprint, radar_scoring
 from chokepoint import analyze_chokepoints
 from pareto import pareto_optimize
+from standards import check_gb_compliance, byproduct_deep_processing
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+import threading, uuid, time
+_task_store = {}  # task_id -> {status, progress, result}
 
 OIL_MAP = {
     "大豆油": OilType.SOYBEAN, "菜籽油": OilType.RAPESEED,
@@ -40,70 +43,79 @@ def index():
 
 @app.route('/api/run', methods=['POST'])
 def run_simulation():
-    """Run full 4-stage refining simulation"""
+    """Run full 4-stage refining simulation (with optional async progress)"""
     data = request.json or {}
+    async_mode = data.get('async', False)
+
+    if async_mode:
+        task_id = str(uuid.uuid4())[:8]
+        _task_store[task_id] = {"status": "running", "progress": 0, "stage": "准备中...", "result": None}
+        def _run_async():
+            try:
+                _task_store[task_id].update({"progress": 5, "stage": "脱胶工段..."})
+                result = _run_sim_internal(data)
+                _task_store[task_id].update({"progress": 40, "stage": "碱炼脱酸..."})
+                _task_store[task_id].update({"progress": 55, "stage": "脱色工段..."})
+                _task_store[task_id].update({"progress": 70, "stage": "脱臭工段..."})
+                _task_store[task_id].update({"progress": 85, "stage": "生成优化建议..."})
+                _task_store[task_id].update({"progress": 95, "stage": "完成..."})
+                _task_store[task_id].update({"status": "done", "progress": 100, "result": result})
+            except Exception as e:
+                _task_store[task_id].update({"status": "error", "error": str(e)})
+        threading.Thread(target=_run_async, daemon=True).start()
+        return jsonify({"task_id": task_id})
+
+    return jsonify(_run_sim_internal(data))
+
+
+@app.route('/api/task/<task_id>')
+def task_status(task_id):
+    t = _task_store.get(task_id)
+    if not t: return jsonify({"error": "Task not found"}), 404
+    return jsonify({"status": t["status"], "progress": t["progress"],
+                    "stage": t.get("stage",""), "result": t.get("result"),
+                    "error": t.get("error")})
+
+
+def _run_sim_internal(data):
+    """内部模拟执行函数"""
     oil_name = str(data.get('oil', '大豆油'))
     oil_type = OIL_MAP.get(oil_name, OilType.SOYBEAN)
     typical = CRUDE_OIL_TYPICAL.get(oil_type, {"AV": 2.0, "P": 200, "NHP": 0.10, "Wax": 0})
-
-    oil = CrudeOil(
-        oil_type=oil_type,
-        batch_name=oil_name,
-        mass_kg=data.get('mass', 100) * 1000,
-        acid_value=data.get('av') or typical["AV"],
-        phosphorus_ppm=data.get('p') or typical["P"],
-        nhp_ratio=data.get('nhp', typical["NHP"]),
-        wax_content_ppm=data.get('wax', typical.get("Wax", 0)),
-    )
-
-    degum_type = data.get('degum', 'acid')
-    excess_lye = data.get('excess', 0.12)
-    route = data.get('route', 'chemical')
-    include_wax = data.get('wax', False)
+    oil = CrudeOil(oil_type=oil_type, batch_name=oil_name,
+                   mass_kg=data.get('mass', 100) * 1000,
+                   acid_value=data.get('av') or typical["AV"],
+                   phosphorus_ppm=data.get('p') or typical["P"],
+                   nhp_ratio=data.get('nhp', typical["NHP"]),
+                   wax_content_ppm=data.get('wax', typical.get("Wax", 0)))
+    degum_type = data.get('degum', 'acid'); excess_lye = data.get('excess', 0.12)
+    route = data.get('route', 'chemical'); include_wax = data.get('wax', False)
 
     result = run_refining(oil, pa_pct=data.get('pa_pct', 0.10),
                           excess_lye=excess_lye, degum_type=degum_type,
                           route=route, include_wax=include_wax)
-    stages = result["stages"]
-    current_oil = result["final_oil"]
-    total_loss = result["total_loss_kg"]
-    yield_pct = result["yield_pct"]
-
-    # Build stages dict for advisor
+    stages = result["stages"]; current_oil = result["final_oil"]
+    total_loss = result["total_loss_kg"]; yield_pct = result["yield_pct"]
     stages_dict = {s["name"]: s for s in stages}
-
-    # Run advisor
     advice = analyze_results(oil_type, stages_dict, oil.mass_kg / 1000)
-
-    # Run cost estimation
     cost = estimate_cost(oil_type, oil.mass_kg / 1000, stages, stages_dict)
 
-    return jsonify({
-        "input": {
-            "oil": oil_name,
-            "mass_ton": round(oil.mass_kg / 1000, 1),
-            "av": round(oil.acid_value, 2),
-            "p_ppm": round(oil.phosphorus_ppm, 0),
-            "degum_type": degum_type,
-            "excess_lye_pct": round(excess_lye, 3),
-            "route": route,
-            "mass_kg": round(oil.mass_kg, 0),
-        },
-        "output": {
-            "product_kg": round(current_oil.mass_kg, 1),
-            "product_av": round(current_oil.acid_value, 2),
-            "product_p_ppm": round(current_oil.phosphorus_ppm, 1),
-            "product_color_r": round(current_oil.color_red, 1),
-            "product_color_y": round(current_oil.color_yellow, 1),
-            "product_ve_ppm": round(current_oil.tocopherol_ppm, 0),
-            "total_loss_kg": round(total_loss, 1),
-            "total_loss_pct": round(total_loss / oil.mass_kg * 100, 1),
-            "yield_pct": round(yield_pct, 1),
-        },
-        "stages": stages,
-        "advisor": advice,
-        "cost": cost,
-    })
+    return {
+        "input": {"oil": oil_name, "mass_ton": round(oil.mass_kg/1000, 1),
+                  "av": round(oil.acid_value, 2), "p_ppm": round(oil.phosphorus_ppm, 0),
+                  "degum_type": degum_type, "excess_lye_pct": round(excess_lye, 3),
+                  "route": route, "mass_kg": round(oil.mass_kg, 0)},
+        "output": {"product_kg": round(current_oil.mass_kg, 1),
+                   "product_av": round(current_oil.acid_value, 2),
+                   "product_p_ppm": round(current_oil.phosphorus_ppm, 1),
+                   "product_color_r": round(current_oil.color_red, 1),
+                   "product_color_y": round(current_oil.color_yellow, 1),
+                   "product_ve_ppm": round(current_oil.tocopherol_ppm, 0),
+                   "total_loss_kg": round(total_loss, 1),
+                   "total_loss_pct": round(total_loss/oil.mass_kg*100, 1),
+                   "yield_pct": round(yield_pct, 1)},
+        "stages": stages, "advisor": advice, "cost": cost,
+    }
 
 
 @app.route('/api/smart-defaults')
@@ -198,6 +210,23 @@ def pareto():
         d.get('mass', 100), d.get('av', 2.0), d.get('p', 800),
         d.get('nhp', 0.15), d.get('obj', 'yield_vs_quality'), d.get('steps', 6)
     )
+    return jsonify(result)
+
+
+@app.route('/api/gb-check', methods=['POST'])
+def gb_check():
+    d = request.json or {}
+    oil_name = d.get('oil', '大豆油')
+    output = d.get('output', {})
+    result = check_gb_compliance(oil_name, output)
+    return jsonify(result)
+
+
+@app.route('/api/byproducts', methods=['POST'])
+def byproducts():
+    d = request.json or {}
+    stages_dict = {s["name"]: s for s in d.get("stages", [])}
+    result = byproduct_deep_processing(d.get('mass', 100), stages_dict)
     return jsonify(result)
 
 

@@ -17,6 +17,42 @@ async function onOilChange(){
 
 function getParams(){return{oil:document.getElementById('oilType').value,mass:parseFloat(document.getElementById('mass').value),av:parseFloat(document.getElementById('av').value),p:parseFloat(document.getElementById('p').value),nhp:parseFloat(document.getElementById('nhp').value),degum:document.getElementById('degum').value,pa_pct:parseFloat(document.getElementById('pa_pct').value),excess:parseFloat(document.getElementById('excess').value),route:document.getElementById('route').value,wax:document.getElementById('wax').value==='1'}}
 
+async function runPareto(){
+  if(!validateInputs())return;
+  showLoading();updateProgress(0,'帕累托搜索中...');
+  try{
+    var body=getParams();body.obj='all';body.steps=5;
+    var r=await fetch('/api/advanced/pareto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var d=await r.json();updateProgress(100,'完成!');
+    var h='<div class=stage style=border-left:4px solid #8e44ad;margin-top:12px><div class=head style=background:#faf5ff>📊 帕累托多目标优化 · '+d.objective+' · '+d.total_solutions+'组参数 → '+d.pareto_optimal_count+'个最优解</div><div class="body show" style=padding:12px>';
+    // Recommended
+    if(d.recommended){var rec=d.recommended;h+='<div style=background:#faf5ff;padding:12px;border-radius:8px;margin-bottom:12px><div style=font-weight:700;color:#8e44ad;font-size:14px>🎯 推荐方案: 得率 '+rec.yield+'% | AV '+rec.AV+' | 成本 ¥'+rec.cost+'/t</div><div style=font-size:11px;color:#666;margin-top:4px>'+rec.rationale+'</div><div style=font-size:10px;color:#888;margin-top:4px>参数: PA='+rec.params['PA%']+'% | 超量碱='+rec.params['超量碱%']+'% | 脱臭='+rec.params['脱臭°C']+'°C</div></div>'}
+    // Extremes
+    if(d.extremes){h+='<div style=display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px>';
+      for(var ek in d.extremes){var ex=d.extremes[ek];h+='<div style=background:#faf8f2;padding:10px;border-radius:6px;text-align:center><div style=font-size:10px;color:#8b7a66>'+ek+'</div><div style=font-size:20px;font-weight:700;color:#8e44ad>得率 '+ex.yield+'%</div><div style=font-size:11px;color:#888>AV '+ex.AV+' | ¥'+ex.cost+'/t</div></div>'}
+      h+='</div>'}
+    // Insights
+    if(d.insight){h+='<div style=background:#fef9f0;padding:10px;border-radius:6px;font-size:11px;line-height:1.6>';
+      for(var ii=0;ii<d.insight.length;ii++)h+='<div>📌 '+d.insight[ii]+'</div>';h+='</div>'}
+    h+='</div></div>';
+    document.getElementById('results').insertAdjacentHTML('afterbegin',h);
+  }catch(e){alert('帕累托优化失败: '+e.message)}
+  hideLoading();
+}
+
+function toggleCalibration(){document.getElementById('calibPanel').style.display=document.getElementById('calibPanel').style.display==='none'?'block':'none'}
+function runCalibration(){
+  if(!currentResult){alert('请先运行模拟');return}
+  var o=currentResult.output,deviations=[];
+  var actY=parseFloat(document.getElementById('calYield').value),actAV=parseFloat(document.getElementById('calAV').value),actSteam=parseFloat(document.getElementById('calSteam').value),actEarth=parseFloat(document.getElementById('calEarth').value);
+  if(actY){var dY=Math.abs(o.yield_pct-actY);deviations.push('得率偏差: |'+o.yield_pct.toFixed(1)+'% - '+actY+'%| = '+dY.toFixed(1)+'个百分点 '+(dY<1?'✅':dY<2?'⚠️':'❌'))}
+  if(actAV){var dAV=Math.abs(o.product_av-actAV);deviations.push('AV偏差: |'+o.product_av.toFixed(2)+' - '+actAV+'| = '+dAV.toFixed(3)+' '+(dAV<0.02?'✅':'❌'))}
+  if(actSteam){var dS=Math.abs(127-actSteam);deviations.push('蒸汽偏差: |127 - '+actSteam+'| = '+dS.toFixed(0)+' kg/t '+(dS<10?'✅':'❌'))}
+  if(actEarth){var dE=Math.abs(1.5-actEarth);deviations.push('白土偏差: |1.5 - '+actEarth+'| = '+dE.toFixed(1)+'% '+(dE<0.3?'✅':'❌'))}
+  document.getElementById('calibResult').innerHTML=deviations.length>0?'<div style=font-weight:700;margin-bottom:4px>模型 vs 实测:</div>'+deviations.map(function(d){return '<div>'+d+'</div>'}).join(''):'请至少填入一个实测值';
+}
+
 function resetParams(){
   document.getElementById('oilType').value='大豆油';onOilChange();
   document.getElementById('mass').value=100;document.getElementById('av').value=2.0;
@@ -24,6 +60,9 @@ function resetParams(){
   document.getElementById('degum').value='acid';document.getElementById('pa_pct').value=0.10;
   document.getElementById('excess').value=0.12;document.getElementById('route').value='chemical';
   document.getElementById('wax').value='0';
+}
+function toggleSidebar(){
+  var sb=document.querySelector('.sidebar');sb.classList.toggle('collapsed');
 }
 function validateInputs(){
   var mass=parseFloat(document.getElementById('mass').value),av=parseFloat(document.getElementById('av').value),p=parseFloat(document.getElementById('p').value);
@@ -34,13 +73,42 @@ function validateInputs(){
   if(errors.length>0){alert('输入校验失败:\n'+errors.join('\n'));return false}
   return true;
 }
+var progressTimer=null;
+function showLoading(){var ov=document.getElementById('loadingOverlay');ov.style.display='block';document.getElementById('progressBar').style.width='0%';document.getElementById('loadingPct').textContent='0%';document.getElementById('loadingStage').textContent='连接服务器...';var btn=document.querySelector('.btn-p');btn.disabled=true;btn.textContent='计算中...'}
+function hideLoading(){var ov=document.getElementById('loadingOverlay');ov.style.display='none';clearInterval(progressTimer);var btn=document.querySelector('.btn-p');btn.disabled=false;btn.textContent='▶ 运行全流程模拟'}
+function updateProgress(pct,stage){document.getElementById('progressBar').style.width=pct+'%';document.getElementById('loadingPct').textContent=pct+'%';if(stage)document.getElementById('loadingStage').textContent=stage}
+
+function startProgress(){updateProgress(0,'正在连接...');var elapsed=0;var stages=['脱胶工段计算中...','碱炼脱酸计算中...','脱色工段计算中...','脱臭工段计算中...','生成优化建议...','加载高级分析...'];progressTimer=setInterval(function(){elapsed+=200;
+  if(elapsed<1500){updateProgress(Math.min(15,elapsed/1500*15),stages[0])}
+  else if(elapsed<3000){updateProgress(15+Math.min(25,(elapsed-1500)/1500*25),stages[1])}
+  else if(elapsed<4500){updateProgress(40+Math.min(25,(elapsed-3000)/1500*25),stages[2])}
+  else if(elapsed<6000){updateProgress(65+Math.min(20,(elapsed-4500)/1500*25),stages[3])}
+  else if(elapsed<7500){updateProgress(85+Math.min(10,(elapsed-6000)/1500*10),stages[4])}
+  else if(elapsed<9000){updateProgress(95+Math.min(5,(elapsed-7500)/1500*5),stages[5])}
+  else{updateProgress(99,'即将完成...')}
+},200)}
+
 async function run(){
   if(!validateInputs())return;
-  var btn=document.querySelector('.btn-p');btn.textContent='⏳ 计算中...';btn.disabled=true;
-  try{var r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
-    if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();currentResult=d;allResults=[d];renderResult(d);fetchAdvanced();
-  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p style=font-size:18px>⚠ 运行失败</p><p>'+e.message+'</p><p style=font-size:11px>请确认服务器正常运行 (127.0.0.1:5090)</p></div>'}
-  btn.textContent='▶ 运行全流程模拟';btn.disabled=false;
+  showLoading();updateProgress(0,'提交任务...');
+  try{
+    var body=getParams();body.async=true;
+    var r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var data=await r.json();
+    if(!data.task_id)throw new Error('No task ID');
+    var taskId=data.task_id,pct=0;
+    // Poll every 500ms
+    while(true){
+      await new Promise(function(res){setTimeout(res,500)});
+      var sr=await fetch('/api/task/'+taskId);var st=await sr.json();
+      if(st.progress>pct)pct=st.progress;
+      updateProgress(pct,st.stage||'计算中...');
+      if(st.status==='done'){updateProgress(100,'完成!');currentResult=st.result;allResults=[st.result];renderResult(st.result);fetchAdvanced();break}
+      if(st.status==='error'){throw new Error(st.error||'Unknown error')}
+    }
+  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p style=font-size:18px>⚠ 运行失败</p><p>'+e.message+'</p><p style=font-size:11px>请确认服务器正常运行</p></div>'}
+  hideLoading();
 }
 
 function renderResult(d){
@@ -106,8 +174,8 @@ async function fetchAdvanced(){
   if(!currentResult)return;
   var body=getParams();body.mass_ton=body.mass;body.stages=currentResult.stages;
   var fetchJSON=async function(url){try{var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)return null;return await r.json()}catch(e){return null}};
-  var results=await Promise.all([fetchJSON('/api/advanced/radar'),fetchJSON('/api/advanced/carbon'),fetchJSON('/api/advanced/chokepoint')]);
-  var radar=results[0],carbon=results[1],cp=results[2];
+  var results=await Promise.all([fetchJSON('/api/advanced/radar'),fetchJSON('/api/advanced/carbon'),fetchJSON('/api/advanced/chokepoint'),fetchJSON('/api/gb-check'),fetchJSON('/api/byproducts')]);
+  var radar=results[0],carbon=results[1],cp=results[2],gb=results[3],bp=results[4];
   var block='<div style=display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px>';
 
   // Radar
@@ -142,6 +210,11 @@ async function fetchAdvanced(){
       block+='<tr><td><b>'+vsName+'</b></td><td style=font-size:10px;color:#888>进口品牌</td><td style=font-size:10px>'+dsName+'</td><td style=color:#888>'+item.current_status+'</td><td>¥ '+ic.toLocaleString()+'</td><td>¥ '+dc.toLocaleString()+'</td><td style=color:'+sc+';font-weight:700>¥ '+sv.toLocaleString()+'</td><td style=font-size:10px>'+item.recommendation+'</td></tr>'}
     block+='<tr style=font-weight:700;background:#f0f6fb;font-size:12px"><td colspan=6>全部采纳后年度差额合计(仅作量级参考)</td><td style=color:#27ae60>约 ¥ '+(cp.total_annual_saving||0).toLocaleString()+'/年</td><td></td></tr></tbody></table>';
     block+='<p style=font-size:9px;color:#aaa;margin-top:6px">注: ①进口/国产价格取自2024-2026年公开报价及招标信息；②年成本基于标准工况(300天/年)估算,实际开工率可能不同；③差额包含设备折旧、维护、能耗及油损等全生命周期因素；④部分国产方案仍处于产业化早期或中试阶段,大规模应用前需实测验证。</p></div></div>'}
+
+  // GB compliance
+  if(gb&&gb.grade){block+='<div class=stage style=border-left:4px solid '+(gb.grade==='一级'?'#27ae60':gb.grade==='二级'?'#2980b9':gb.grade==='三级'?'#e67e22':'#c0392b')+';margin-top:12px><div class=head onclick="this.nextElementSibling.classList.toggle(\'show\')">🏷 国标合规 · '+gb.verdict+'</div><div class=body style=padding:12px><table>';for(var gk in gb.details){var gd=gb.details[gk];block+='<tr><td style=color:'+(gd.passed?'#27ae60':'#c0392b')+';font-weight:700>'+(gd.passed?'✅':'❌')+' '+gk+'</td><td style=font-size:11px>'+gd.checks.join(' | ')+'</td></tr>'}block+='</table></div></div>'}
+  // Byproducts
+  if(bp&&bp.items){block+='<div class=stage style=border-left:4px solid #c8963e;margin-top:12px><div class=head style=background:#fef9ee onclick="this.nextElementSibling.classList.toggle(\'show\')">🛢 副产物深加工 · '+bp.total_gain_desc+'</div><div class=body style=padding:12px><table style=font-size:11px><tr style=font-weight:700><td>项目</td><td>当前方案</td><td>深加工方案</td><td>批增收</td></tr>';for(var bi=0;bi<bp.items.length;bi++){var b=bp.items[bi];block+='<tr><td>'+b.name+'</td><td>'+b.current+'</td><td>'+b.upgraded+'</td><td style=color:#27ae60;font-weight:700>+¥'+b.net_gain.toLocaleString()+'</td></tr>'}block+='</table></div></div>'}
 
   document.getElementById('results').insertAdjacentHTML('beforeend',block);
   setTimeout(drawRadarIfReady,300);

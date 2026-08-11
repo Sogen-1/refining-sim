@@ -9,8 +9,17 @@ body{font-family:'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;backgroun
 .topbar .brand{color:var(--gold);font-size:20px}
 .topbar .contact{font-size:11px;opacity:.7;margin-left:4px}
 .topbar .contact span{margin:0 6px}
+.topbar .toggle-btn{display:inline-block;background:none;border:none;color:#e0d0b0;font-size:20px;cursor:pointer;padding:4px 8px;margin-right:4px;line-height:1}
 .layout{display:flex;min-height:calc(100vh-54px)}
-.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);padding:14px 0;flex-shrink:0;font-size:12px}
+.sidebar{width:180px;min-width:180px;background:var(--card);border-right:1px solid var(--border);padding:10px 0;flex-shrink:0;font-size:11px;overflow-x:hidden;transition:margin-left .3s}
+.sidebar.collapsed{margin-left:-180px;min-width:0;width:0;padding:0;border:none}
+.sidebar h4{font-size:10px;color:var(--muted);padding:0 10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.sidebar .item{padding:6px 10px;cursor:pointer;border-left:3px solid transparent;display:flex;justify-content:space-between;transition:.12s;white-space:nowrap}
+.sidebar .item:hover{background:#faf6ec}
+.sidebar .item .badge{font-size:9px;padding:1px 5px;border-radius:6px;background:var(--border)}
+.sidebar button{margin:8px 10px;padding:4px;width:calc(100%-20px);border:2px dashed var(--border);border-radius:4px;background:none;cursor:pointer;color:var(--muted);font-size:10px}
+.layout{display:flex;min-height:calc(100vh-54px)}
+.sidebar{width:160px;min-width:100px;background:var(--card);border-right:1px solid var(--border);padding:10px 0;flex-shrink:0;font-size:11px;overflow:hidden}
 .sidebar h4{font-size:10px;color:var(--muted);padding:0 14px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
 .sidebar .item{padding:7px 14px;cursor:pointer;border-left:3px solid transparent;display:flex;justify-content:space-between;transition:.12s}
 .sidebar .item:hover{background:#faf6ec}.sidebar .item .badge{font-size:10px;padding:1px 7px;border-radius:8px;background:var(--border)}
@@ -50,12 +59,20 @@ body{font-family:'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;backgroun
 .compare-table th{background:#f5efe0;padding:7px 10px;text-align:left;font-weight:600;border-bottom:2px solid var(--border)}
 .compare-table td{padding:6px 10px;border-bottom:1px solid #f5f0e4}
 .best{color:var(--green);font-weight:700}.worst{color:var(--red)}
+@media(max-width:900px){.layout{flex-direction:column}.sidebar{width:100%!important;min-width:100%!important;max-height:120px;overflow-y:auto}.sidebar.collapsed{max-height:0;min-width:0!important;width:0!important;margin-left:0}.main{flex-direction:column!important}.form-panel{width:100%!important;position:static!important}.topbar .toggle-btn{font-size:18px}.topbar .contact{display:none}.kpi-row{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:500px){.form-panel{padding:12px}.kpi-row{grid-template-columns:1fr!important}.stage .head{font-size:11px}}
 </style></head><body>
 
 <div class="topbar">
+  <button class="toggle-btn" onclick="toggleSidebar()" title="折叠侧边栏">&#9776;</button>
   <span class="brand">&#9951;</span> 油脂精炼工艺模拟引擎
   <span style="font-size:10px;opacity:.5;margin-left:4px">v3.1</span>
   <span style="margin-left:auto"></span>
+  <span style="margin-left:auto;display:flex;gap:4px">
+    <button onclick="setLang('zh')" style="background:none;border:1px solid #666;color:#e0d0b0;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px" title="中文">中</button>
+    <button onclick="setLang('en')" style="background:none;border:1px solid #666;color:#e0d0b0;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px" title="English">EN</button>
+    <button onclick="setLang('ru')" style="background:none;border:1px solid #666;color:#e0d0b0;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px" title="Русский">RU</button>
+  </span>
   <span class="contact">姜振宇 <span>|</span> 15961418818</span>
 </div>
 
@@ -84,11 +101,31 @@ body{font-family:'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;backgroun
   <div class="fg"><label>超量碱 (%)</label><input id="excess" value="0.12" type="number" step="0.01" min="0.03" max="0.35"></div></div>
   <div class="fg"><label>脱蜡 (葵花/玉米/米糠油)</label><select id="wax"><option value="0">否</option><option value="1">是</option></select></div>
   <div class="note" id="note"></div>
+  <div id="loadingOverlay" style="display:none;background:rgba(255,255,255,.95);border-radius:var(--radius);padding:20px;margin:8px 0;text-align:center;border:1px solid var(--border)">
+    <div style="font-weight:700;font-size:13px;color:var(--accent2);margin-bottom:6px">⏳ 正在运行模拟...</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="loadingStage">连接服务器...</div>
+    <div style="background:#e8e0d0;border-radius:10px;height:8px;overflow:hidden">
+      <div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:10px;transition:width .3s"></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px" id="loadingPct">0%</div>
+  </div>
   <button class="btn btn-p" onclick="run()">&#9654; 运行全流程模拟</button>
   <button class="btn btn-o" onclick="autoOptimize()">&#9889; 一键智能优化</button>
   <button class="btn btn-s" onclick="saveScenario()">&#128190; 保存当前方案</button>
+  <button class="btn btn-o" onclick="runPareto()" style="border-color:#8e44ad;color:#8e44ad">&#128202; 帕累托多目标优化</button>
   <button class="btn btn-s" onclick="exportCSV()">&#128229; 导出 Excel (CSV)</button>
   <button class="btn btn-s" onclick="resetParams()">&#8634; 恢复默认</button>
+
+  <div style="margin-top:12px;padding:10px;background:#fef9f0;border-radius:6px;border:1px solid #f0e0c0;display:none" id="calibPanel">
+    <div style="font-size:11px;font-weight:700;color:#e67e22;margin-bottom:6px">🔧 模型校准 (输入工厂实测数据)</div>
+    <div class="fr"><div class="fg"><label>实际得率(%)</label><input id="calYield" type="number" step="0.1" placeholder="如 93.5"></div>
+    <div class="fg"><label>实际AV</label><input id="calAV" type="number" step="0.01" placeholder="如 0.05"></div></div>
+    <div class="fr"><div class="fg"><label>实际蒸汽(kg/t)</label><input id="calSteam" type="number" step="1" placeholder="如 80"></div>
+    <div class="fg"><label>实际白土(%)</label><input id="calEarth" type="number" step="0.1" placeholder="如 1.2"></div></div>
+    <button class="btn btn-s" onclick="runCalibration()" style="color:#e67e22;border-color:#e67e22">📐 计算偏差</button>
+    <div id="calibResult" style="font-size:10px;margin-top:4px"></div>
+  </div>
+  <button class="btn btn-s" onclick="toggleCalibration()" style="margin-top:4px">🔧 校准模式</button>
 </div>
 
 <div class="result-area" id="results">
@@ -98,6 +135,7 @@ body{font-family:'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;backgroun
 
 <div class="footer-bar">⚠ 模型基于公开文献经验系数，未经工厂实测数据校准。实际应用请以 calibration.py 对标本厂历史数据 &nbsp;|&nbsp; 技术支持：姜振宇 15961418818 &nbsp;|&nbsp; v3.1</div>
 
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 <!--
 const OIL_TYPICALS={大豆油:{av:2.0,p:800,nhp:.15},菜籽油:{av:2.0,p:300,nhp:.10},花生油:{av:1.0,p:100,nhp:.08},葵花籽油:{av:2.0,p:200,nhp:.10},玉米油:{av:3.0,p:250,nhp:.10},棉籽油:{av:8.0,p:600,nhp:.12},棕榈油:{av:5.0,p:15,nhp:.05},米糠油:{av:15.0,p:1200,nhp:.10}};
