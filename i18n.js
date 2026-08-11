@@ -64,14 +64,29 @@ ru:{title:"Симулятор рафинации масел",run:"▶ Запус
  fillIP:"Введите ваш IP-адрес"}
 };
 function t(k){var d=T[LANG]||T['zh'];return d[k]||k}
-function setLang(lang){LANG=lang;localStorage.setItem('refining_lang',lang);location.reload()}
+function setLang(lang){LANG=lang;localStorage.setItem('refining_lang',lang);applyLangNow()}
+function applyLangNow(){
+ var d=T[LANG]||T['zh'];
+ document.title=d.title;
+ var logoEl=document.querySelector('.brand');if(logoEl)logoEl.textContent='⚙ '+d.title;
+ var ls=document.querySelectorAll('.fg label');
+ var keys=['oilLabel','massLabel','avLabel','pLabel','nhpLabel','degumLabel','routeLabel','paLabel','exLabel','waxLabel'];
+ for(var i=0;i<Math.min(ls.length,keys.length);i++){var k=keys[i];if(d[k])ls[i].textContent=d[k]}
+ var oi=document.getElementById('oilType');if(oi&&d.oils){while(oi.firstChild)oi.removeChild(oi.firstChild);for(var ok in d.oils){var opt=document.createElement('option');opt.value=ok;opt.textContent=d.oils[ok];oi.appendChild(opt)}}
+ var dg=document.getElementById('degum');if(dg&&d.degums){while(dg.firstChild)dg.removeChild(dg.firstChild);for(var dk in d.degums){var opt=document.createElement('option');opt.value=dk;opt.textContent=d.degums[dk];dg.appendChild(opt)}}
+ var rt=document.getElementById('route');if(rt&&d.routes){while(rt.firstChild)rt.removeChild(rt.firstChild);for(var rk in d.routes){var opt=document.createElement('option');opt.value=rk;opt.textContent=d.routes[rk];rt.appendChild(opt)}}
+ var wx=document.getElementById('wax');if(wx&&d.wax){while(wx.firstChild)wx.removeChild(wx.firstChild);for(var wk in d.wax){var opt=document.createElement('option');opt.value=(wk==='yes'?'1':'0');opt.textContent=d.wax[wk];wx.appendChild(opt)}}
+ var btns=document.querySelectorAll('.btn-p,.btn-o,.btn-s');
+ var btnKeys=['run','optimize','pareto','save','export','reset','calib','toggle'];
+ for(var i=0;i<btns.length;i++){var idx=btnKeys[i];if(idx&&d[idx])btns[i].textContent=d[idx]}
+}
 function tr(k){return T[LANG]?.[k]||T['zh'][k]||k}
 window.addEventListener('DOMContentLoaded',function(){
  try{var s=localStorage.getItem('refining_lang');if(s)LANG=s}catch(e){}
  var d=T[LANG]||T['zh'];
  // Update static elements
  document.title=d.title;
- document.querySelector('.logo')&&(document.querySelector('.logo').innerHTML='⚙ '+d.title);
+ var logoEl=document.querySelector('.brand');if(logoEl)logoEl.textContent='⚙ '+d.title;
  // Update labels
  var ls=document.querySelectorAll('.fg label');
  var keys=['oilLabel','massLabel','avLabel','pLabel','nhpLabel','degumLabel','routeLabel','paLabel','exLabel','waxLabel'];
