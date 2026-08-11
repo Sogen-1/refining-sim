@@ -1,0 +1,12 @@
+<!DOCTYPE html><html><head><meta charset=utf-8><title>Test</title></head><body>
+<h1>测试页面</h1>
+<button onclick="test()">点击测试API</button>
+<div id="out"></div>
+<script>
+async function test(){
+  document.getElementById('out').textContent='测试中...';
+  const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({oil:'大豆油',mass:100,av:2,p:800})});
+  const d=await r.json();
+  document.getElementById('out').textContent='API OK! Yield: '+d.output.yield_pct+'% | AV: '+d.output.product_av;
+}
+</script></body></html>
