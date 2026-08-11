@@ -91,9 +91,13 @@ function startProgress(){var st=(T[LANG]||T['zh']).stages||['Degumming...','Neut
 async function run(){
   if(!validateInputs())return;
   showLoading();startProgress();
-  try{var r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
-    if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();currentResult=d;allResults=[d];updateProgress(100,tr('done'));renderResult(d);fetchAdvanced();
-  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p style=font-size:18px>⚠ '+tr('run')+'</p><p>'+e.message+'</p></div>'}
+  try{
+    var resp=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
+    var txt=await resp.text();
+    if(!resp.ok){document.getElementById('results').innerHTML='<pre>'+txt+'</pre>';hideLoading();return}
+    var d=JSON.parse(txt);
+    currentResult=d;allResults=[d];updateProgress(100,tr('done'));renderResult(d);fetchAdvanced();
+  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p>Error: '+e.message+'</p></div>'}
   hideLoading();
 }
 
