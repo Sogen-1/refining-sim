@@ -25,6 +25,8 @@ from pareto import pareto_optimize
 from standards import check_gb_compliance, byproduct_deep_processing
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 import threading, uuid, time
 _task_store = {}  # task_id -> {status, progress, result}
 
