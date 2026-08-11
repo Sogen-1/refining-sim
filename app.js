@@ -90,24 +90,10 @@ function startProgress(){var st=(T[LANG]||T['zh']).stages||['Degumming...','Neut
 
 async function run(){
   if(!validateInputs())return;
-  showLoading();updateProgress(0,'提交任务...');
-  try{
-    var body=getParams();body.async=true;
-    var r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    var data=await r.json();
-    if(!data.task_id)throw new Error('No task ID');
-    var taskId=data.task_id,pct=0;
-    // Poll every 500ms
-    while(true){
-      await new Promise(function(res){setTimeout(res,500)});
-      var sr=await fetch('/api/task/'+taskId);var st=await sr.json();
-      if(st.progress>pct)pct=st.progress;
-      updateProgress(pct,st.stage||'计算中...');
-      if(st.status==='done'){updateProgress(100,'完成!');currentResult=st.result;allResults=[st.result];renderResult(st.result);fetchAdvanced();break}
-      if(st.status==='error'){throw new Error(st.error||'Unknown error')}
-    }
-  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p style=font-size:18px>⚠ 运行失败</p><p>'+e.message+'</p><p style=font-size:11px>请确认服务器正常运行</p></div>'}
+  showLoading();startProgress();
+  try{var r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
+    if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();currentResult=d;allResults=[d];updateProgress(100,tr('done'));renderResult(d);fetchAdvanced();
+  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p style=font-size:18px>⚠ '+tr('run')+'</p><p>'+e.message+'</p></div>'}
   hideLoading();
 }
 
