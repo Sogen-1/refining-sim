@@ -26,6 +26,7 @@ from standards import check_gb_compliance, byproduct_deep_processing
 from auto_calibrate import auto_calibrate, generate_comparison_report
 from contaminants import predict_ge_formation, predict_3mcpd_formation, predict_pahs_removal, predict_pesticide_removal
 from process_sheet import generate_process_sheet, water_footprint, byproduct_process_params
+from troubleshoot import benchmark_ranking, troubleshoot, regulatory_alerts
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -237,6 +238,22 @@ def contaminants_api():
         "PAHs": predict_pahs_removal(d.get('earth', 1.2), d.get('carbon', 0.2)),
         "农药塑化剂": predict_pesticide_removal(d.get('degum', 'acid'), d.get('earth', 1.2), d.get('temp', 245)),
     })
+
+
+@app.route('/api/benchmark', methods=['POST'])
+def benchmark_api():
+    d = request.json or {}
+    return jsonify(benchmark_ranking(d.get('oil','大豆油'), d.get('output',{}), d.get('deod',{})))
+
+@app.route('/api/troubleshoot', methods=['POST'])
+def troubleshoot_api():
+    d = request.json or {}
+    return jsonify(troubleshoot(d.get('issue','成品油AV偏高'), d.get('oil','大豆油'), d.get('output')))
+
+@app.route('/api/regulatory', methods=['POST'])
+def regulatory_api():
+    d = request.json or {}
+    return jsonify(regulatory_alerts(d.get('output',{})))
 
 
 @app.route('/api/calibrate', methods=['POST'])
