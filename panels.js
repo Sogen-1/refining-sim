@@ -1,5 +1,15 @@
-function renderPanels(cm,wf,bpp,bp,ps){
+function renderPanels(cm,wf,bpp,bp,ps,bm,rg){
   var block='';
+
+  // Benchmark ranking
+  if(bm){block+='<div class=stage style=border-left:4px solid #2c3e50;margin-top:12px><div class=head style=background:#f0f4f8 onclick="this.nextElementSibling.classList.toggle(\'show\')">📊 行业对标排名 · 告诉你处在行业什么水平</div><div class="body show" style=padding:12px><table style=font-size:11px><tr style=font-weight:700><td>指标</td><td>当前值</td><td>行业排名</td><td>行业最优</td><td>改进潜力</td></tr>';
+    for(var mk in bm){var m=bm[mk];var pc=m['行业百分位'];var color=pc.includes('前')?'#27ae60':pc.includes('中')?'#2980b9':'#e67e22';
+      block+='<tr><td><b>'+mk+'</b></td><td>'+m['当前值']+'</td><td style=color:'+color+';font-weight:700>'+pc+'</td><td>'+m['行业最优']+'</td><td style=font-size:10px>'+m['改进潜力']+'</td></tr>'}
+    block+='</table></div></div>'}
+  // Regulatory alerts
+  if(rg&&rg.alerts){block+='<div class=stage style=border-left:4px solid '+(rg.critical_count>0?'#c0392b':'#e67e22')+';margin-top:12px><div class=head style=background:#fff5f5 onclick="this.nextElementSibling.classList.toggle(\'show\')">⚠ 法规红线 · '+rg.summary+'</div><div class="body show" style=padding:12px><table style=font-size:11px><tr style=font-weight:700><td>级别</td><td>标准</td><td>指标</td><td>限值</td><td>后果+整改</td></tr>';
+    for(var ai=0;ai<rg.alerts.length;ai++){var a=rg.alerts[ai];block+='<tr><td>'+a['级别']+'</td><td>'+a['标准']+'</td><td>'+a['指标']+'</td><td>'+a['限值']+'</td><td style=font-size:10px>'+a['后果']+' → '+a['整改']+'</td></tr>'}
+    block+='</table></div></div>'}
 
   // Contaminants
   if(cm&&cm.GE){
