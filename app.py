@@ -27,6 +27,7 @@ from auto_calibrate import auto_calibrate, generate_comparison_report
 from contaminants import predict_ge_formation, predict_3mcpd_formation, predict_pahs_removal, predict_pesticide_removal
 from process_sheet import generate_process_sheet, water_footprint, byproduct_process_params
 from troubleshoot import benchmark_ranking, troubleshoot, regulatory_alerts
+from quick_wins import get_quick_wins
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -254,6 +255,13 @@ def troubleshoot_api():
 def regulatory_api():
     d = request.json or {}
     return jsonify(regulatory_alerts(d.get('output',{})))
+
+
+@app.route('/api/quick-wins', methods=['POST'])
+def quick_wins_api():
+    d = request.json or {}
+    stages_dict = {s["name"]: s for s in d.get("stages", [])}
+    return jsonify(get_quick_wins(d.get('oil','大豆油'), stages_dict, d.get('mass',100)))
 
 
 @app.route('/api/calibrate', methods=['POST'])
