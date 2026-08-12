@@ -22,6 +22,7 @@ Refining Process Simulation - Deodorization
 """
 
 from core import CrudeOil, ProcessConditions, OilType
+from calibration import DEODORIZATION_CAL
 from typing import Dict, Tuple
 import math
 
@@ -36,14 +37,14 @@ class DeodorizationSimulator:
 
     # 各油种脱臭温度推荐 (°C)
     TYPICAL_TEMP = {
-        OilType.SOYBEAN:    250,
-        OilType.RAPESEED:   240,
+        OilType.SOYBEAN:    235,
+        OilType.RAPESEED:   230,
         OilType.PEANUT:     220,
-        OilType.SUNFLOWER:  230,
-        OilType.CORN:       240,
-        OilType.COTTONSEED: 240,
-        OilType.PALM:       260,  # 棕榈油需要高温脱酸
-        OilType.RICE_BRAN:  245,
+        OilType.SUNFLOWER:  225,
+        OilType.CORN:       235,
+        OilType.COTTONSEED: 235,
+        OilType.PALM:       255,
+        OilType.RICE_BRAN:  240,
     }
 
     def __init__(self, oil: CrudeOil, conditions: ProcessConditions):
@@ -71,7 +72,8 @@ class DeodorizationSimulator:
         实际经验: 在245°C, 2 mbar, 1.5%汽提蒸汽下,
         FFA可降至0.03-0.05% (以油酸计), 相当于AV 0.06-0.10
         """
-        temp = self.cond.deodorization_temp_c or self.TYPICAL_TEMP.get(self.oil.oil_type, 245)
+        temp = self.TYPICAL_TEMP.get(self.oil.oil_type, 235)
+        if self.cond.deodorization_temp_c != 245: temp = self.cond.deodorization_temp_c
         vacuum = self.cond.deodorization_vacuum_mbar or 2.0
         steam_pct = self.cond.stripping_steam_pct or 1.5
         residence = self.cond.deodorization_time_min or 90
@@ -139,7 +141,7 @@ class DeodorizationSimulator:
 
         # 真空喷射蒸汽 (四级蒸汽喷射泵)
         # 约 3-6 kg steam / kg stripping steam
-        ejector_ratio = 4.5
+        ejector_ratio = DEODORIZATION_CAL["ejector_ratio"]
         ejector_steam = stripping_steam * ejector_ratio
 
         # 加热蒸汽 (间接)
@@ -151,7 +153,7 @@ class DeodorizationSimulator:
         heat_needed = oil_mass * cp_oil * delta_t  # kJ
 
         # 假定热回收率 70% (现代脱臭塔标配)
-        heat_recovery = 0.70
+        heat_recovery = DEODORIZATION_CAL["heat_recovery"]
         heat_after_recovery = heat_needed * (1 - heat_recovery)
 
         # 1吨蒸汽(1MPa饱和)提供约2000 MJ = 2,000,000 kJ 潜热
@@ -205,10 +207,11 @@ class DeodorizationSimulator:
            - 前体: 氯离子 + 酰基甘油在高温下反应
            - 脱臭前充分水洗除氯是主要控制手段
         """
-        temp = self.cond.deodorization_temp_c or 245
+        temp = self.TYPICAL_TEMP.get(self.oil.oil_type, 235)
+        if self.cond.deodorization_temp_c != 245: temp = self.cond.deodorization_temp_c
         residence = self.cond.deodorization_time_min or 90
 
-        # TFA 估算 (大豆油/菜籽油)
+        # TFA 估算 (大豆油/菜籽油) - 基于实际脱臭温度
         # 经验公式: TFA_formation(%) ≈ k0 * exp(Ea/RT) * t
         # 简化为温度阈值模型
         if temp < 220:
@@ -319,7 +322,8 @@ class DeodorizationSimulator:
     # ==================================================================
 
     def run(self) -> Dict:
-        temp = self.cond.deodorization_temp_c or self.TYPICAL_TEMP.get(self.oil.oil_type, 245)
+        temp = self.TYPICAL_TEMP.get(self.oil.oil_type, 235)
+        if self.cond.deodorization_temp_c != 245: temp = self.cond.deodorization_temp_c
         print(f"{'='*60}")
         print(f"  脱臭工段 - {self.oil.oil_type.cn_name} @ {temp}°C")
         print(f"  进油: AV={self.oil.acid_value:.2f} | "
