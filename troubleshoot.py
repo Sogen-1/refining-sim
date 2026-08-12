@@ -50,52 +50,32 @@ def benchmark_ranking(oil_name: str, output: dict, deod_stage: dict = None) -> d
         ("精炼得率", bm["yield_pct"], yield_pct, "%"),
         ("蒸汽单耗", bm["steam_kg_per_ton"], steam, "kg/t"),
     ]:
-        percentile = "后10%"
-        color = "#c0392b"
-        if value <= data["p25"] if metric == "蒸汽单耗" else value >= data["p25"]:
-            if metric == "蒸汽单耗":
-                if value <= data["best"]:
-                    percentile = "前5% (顶尖)"
-                    color = "#27ae60"
-                elif value <= data["p25"]:
-                    percentile = "前25%"
-                    color = "#27ae60"
-                elif value <= data["p50"]:
-                    percentile = "前50% (中上)"
-                    color = "#2980b9"
-                elif value <= data["p75"]:
-                    percentile = "后50% (中下)"
-                    color = "#e67e22"
-                else:
-                    percentile = "后25%"
-                    color = "#c0392b"
-            else:  # yield - higher is better
-                if value >= data["best"]:
-                    percentile = "前5% (顶尖)"
-                    color = "#27ae60"
-                elif value >= data["p75"]:
-                    percentile = "前25%"
-                    color = "#27ae60"
-                elif value >= data["p50"]:
-                    percentile = "前50% (中上)"
-                    color = "#2980b9"
-                elif value >= data["p25"]:
-                    percentile = "后50% (中下)"
-                    color = "#e67e22"
-                else:
-                    percentile = "后25%"
-                    color = "#c0392b"
+        position = "有待提升"
+        color = "#e67e22"
+        if metric == "蒸汽单耗":
+            if value <= data["p25"]: position = "行业较好水平"; color = "#27ae60"
+            elif value <= data["p50"]: position = "中等偏上"; color = "#2980b9"
+            elif value <= data["p75"]: position = "中等水平"; color = "#e67e22"
+            else: position = "有较大提升空间"; color = "#c0392b"
+        else:
+            if value >= data["p75"]: position = "行业较好水平"; color = "#27ae60"
+            elif value >= data["p50"]: position = "中等偏上"; color = "#2980b9"
+            elif value >= data["p25"]: position = "中等水平"; color = "#e67e22"
+            else: position = "有较大提升空间"; color = "#c0392b"
 
         gap = data["best"] - value
-        if metric == "蒸汽单耗":
-            gap = value - data["best"]
+        if metric == "蒸汽单耗": gap = value - data["best"]
+
+        potential = "—"
+        if abs(gap) > 10: potential = "存在较大优化空间"
+        elif abs(gap) > 3: potential = "有一定优化空间"
+        else: potential = "已接近行业先进水平"
 
         results[metric] = {
             "当前值": f"{value} {unit}",
-            "行业百分位": percentile,
-            "行业最优": f"{data['best']} {unit}",
-            "距最优差距": f"{gap:.1f} {unit}",
-            "改进潜力": f"若达到P50水平, 年增效约 ¥{abs(gap)*70*300/10000:.0f}万" if abs(gap) > 5 else "已达行业先进水平",
+            "行业定位": position,
+            "参考基准": f"{data['p50']} {unit} (中位)",
+            "优化潜力": potential,
         }
 
     return results
