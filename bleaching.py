@@ -17,6 +17,7 @@ Refining Process Simulation - Bleaching
 """
 
 from core import CrudeOil, ProcessConditions, OilType
+from calibration import BLEACHING_CAL
 from typing import Dict, Tuple
 import math
 
@@ -49,7 +50,7 @@ class BleachingSimulator:
     }
 
     # 白土吸油率 (每1kg白土夹带的中性油, kg)
-    OIL_RETENTION_PER_KG_EARTH = 0.35  # 业界经验: 30%-40%
+    OIL_RETENTION_PER_KG_EARTH = BLEACHING_CAL["oil_retention"]
 
     def __init__(self, oil: CrudeOil, conditions: ProcessConditions):
         self.oil = oil
