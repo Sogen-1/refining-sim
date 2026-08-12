@@ -91,13 +91,9 @@ function startProgress(){var st=(T[LANG]||T['zh']).stages||['Degumming...','Neut
 async function run(){
   if(!validateInputs())return;
   showLoading();startProgress();
-  try{
-    var resp=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
-    var txt=await resp.text();
-    if(!resp.ok){document.getElementById('results').innerHTML='<pre>'+txt+'</pre>';hideLoading();return}
-    var d=JSON.parse(txt);
-    currentResult=d;allResults=[d];updateProgress(100,tr('done'));renderResult(d);fetchAdvanced();
-  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p>Error: '+e.message+'</p></div>'}
+  try{var r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
+    if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();currentResult=d;allResults=[d];updateProgress(100,tr('done'));renderResult(d);fetchAdvanced();
+  }catch(e){document.getElementById('results').innerHTML='<div class=empty style=color:#c0392b><p style=font-size:18px>⚠ '+tr('run')+'</p><p>'+e.message+'</p></div>'}
   hideLoading();
 }
 
@@ -154,7 +150,7 @@ function renderResult(d){
     h+='<tr style=font-weight:700;background:#eaf7ea;font-size:13px"><td>加工毛利</td><td style=color:#27ae60>¥ '+grossMarginVal.toLocaleString()+'</td></tr>';
     h+='</table></div></div>'}
 
-// Stage details
+  // Stage details
   for(var si=0;si<stages.length;si++){var s=stages[si];h+='<div class=stage><div class=head onclick="this.nextElementSibling.classList.toggle(\'show\')">📋 '+s.name+' 详细参数 ▼</div><div class=body><table>';
     for(var k in s.results)h+='<tr><td>'+k+'</td><td>'+s.results[k]+'</td></tr>';h+='</table></div></div>'}
   document.getElementById('results').innerHTML=h;
@@ -164,8 +160,8 @@ async function fetchAdvanced(){
   if(!currentResult)return;
   var body=getParams();body.mass_ton=body.mass;body.stages=currentResult.stages;
   var fetchJSON=async function(url){try{var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)return null;return await r.json()}catch(e){return null}};
-  var results=await Promise.all([fetchJSON('/api/advanced/radar'),fetchJSON('/api/advanced/carbon'),fetchJSON('/api/advanced/chokepoint'),fetchJSON('/api/gb-check'),fetchJSON('/api/byproducts'),fetchJSON('/api/contaminants'),fetchJSON('/api/water-footprint'),fetchJSON('/api/byproduct-params'),fetchJSON('/api/process-sheet'),fetchJSON('/api/benchmark'),fetchJSON('/api/regulatory')]);
-  var radar=results[0],carbon=results[1],cp=results[2],gb=results[3],bp=results[4],cm=results[5],wf=results[6],bpp=results[7],ps=results[8],bm=results[9],rg=results[10];
+  var results=await Promise.all([fetchJSON('/api/advanced/radar'),fetchJSON('/api/advanced/carbon'),fetchJSON('/api/advanced/chokepoint'),fetchJSON('/api/gb-check'),fetchJSON('/api/byproducts')]);
+  var radar=results[0],carbon=results[1],cp=results[2],gb=results[3],bp=results[4];
   var block='<div style=display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px>';
 
   // Radar
@@ -206,7 +202,6 @@ async function fetchAdvanced(){
   // Byproducts
   if(bp&&bp.items){block+='<div class=stage style=border-left:4px solid #c8963e;margin-top:12px><div class=head style=background:#fef9ee onclick="this.nextElementSibling.classList.toggle(\'show\')">🛢 副产物深加工 · '+bp.total_gain_desc+'</div><div class=body style=padding:12px><table style=font-size:11px><tr style=font-weight:700><td>项目</td><td>当前方案</td><td>深加工方案</td><td>批增收</td></tr>';for(var bi=0;bi<bp.items.length;bi++){var b=bp.items[bi];block+='<tr><td>'+b.name+'</td><td>'+b.current+'</td><td>'+b.upgraded+'</td><td style=color:#27ae60;font-weight:700>+¥'+b.net_gain.toLocaleString()+'</td></tr>'}block+='</table></div></div>'}
 
-  if(typeof renderPanels==='function')block+=renderPanels(cm,wf,bpp,bp,ps,bm,rg);
   document.getElementById('results').insertAdjacentHTML('beforeend',block);
   setTimeout(drawRadarIfReady,300);
 }
