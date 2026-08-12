@@ -12,17 +12,10 @@
 #  脱胶工段校准
 # ═══════════════════════════════════════
 DEGUMMING_CAL = {
-    # 水化磷脂脱除率修正 (1.0 = 默认)
     "hp_removal_factor": 1.02,
-
-    # 非水化磷脂脱除率修正
-    "nhp_removal_factor": 1.30,  # 加强NHP脱除
-
-    # 胶脚中中性油夹带系数
-    "neutral_oil_entrainment": 0.25,  # 进一步降低油损
-
-    # 胶脚含水量系数
-    "gum_water_ratio": 0.35,  # 降低胶脚含水
+    "nhp_removal_factor": 1.40,  # 加强NHP脱除(1.30→1.40)
+    "neutral_oil_entrainment": 0.20,  # 进一步降低中性油夹带
+    "gum_water_ratio": 0.30,  # 降低胶脚含水
 }
 
 # ═══════════════════════════════════════
@@ -57,11 +50,11 @@ DEODORIZATION_CAL = {
     # 汽提效率系数
     "stripping_efficiency": 1.0,
 
-    # 热回收效率
-    "heat_recovery": 0.75,  # 从0.70提升至0.75
+    # 热回收效率 (现代脱臭塔标配 75-85%)
+    "heat_recovery": 0.80,
 
-    # 喷射蒸汽比 (kg喷射蒸汽/kg汽提蒸汽)
-    "ejector_ratio": 3.5,  # 从4.5降至3.5
+    # 喷射蒸汽比 (kg喷射蒸汽/kg汽提蒸汽, 干式真空可降至1.0以下)
+    "ejector_ratio": 2.5,
 }
 
 # ═══════════════════════════════════════
