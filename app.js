@@ -202,7 +202,7 @@ async function fetchAdvanced(){
   // Byproducts
   if(bp&&bp.items){block+='<div class=stage style=border-left:4px solid #c8963e;margin-top:12px><div class=head style=background:#fef9ee onclick="this.nextElementSibling.classList.toggle(\'show\')">🛢 副产物深加工 · '+bp.total_gain_desc+'</div><div class=body style=padding:12px><table style=font-size:11px><tr style=font-weight:700><td>项目</td><td>当前方案</td><td>深加工方案</td><td>批增收</td></tr>';for(var bi=0;bi<bp.items.length;bi++){var b=bp.items[bi];block+='<tr><td>'+b.name+'</td><td>'+b.current+'</td><td>'+b.upgraded+'</td><td style=color:#27ae60;font-weight:700>+¥'+b.net_gain.toLocaleString()+'</td></tr>'}block+='</table></div></div>'}
 
-  if(typeof renderPanels==='function')block+=renderPanels(cm,wf,bpp,bp,ps,bm,rg);
+  try{if(typeof renderPanels==='function')block+=renderPanels(cm,wf,bpp,bp,ps,bm,rg)}catch(e){console.error('Panels error:',e);block+='<div class=stage style=border-left:4px solid #c0392b;margin-top:12px><div class=head>Panel Error</div><div class="body show">'+e.message+'</div></div>'}
   document.getElementById('results').insertAdjacentHTML('beforeend',block);
   setTimeout(drawRadarIfReady,300);
 }
