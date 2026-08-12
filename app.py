@@ -24,6 +24,8 @@ from chokepoint import analyze_chokepoints
 from pareto import pareto_optimize
 from standards import check_gb_compliance, byproduct_deep_processing
 from auto_calibrate import auto_calibrate, generate_comparison_report
+from contaminants import predict_ge_formation, predict_3mcpd_formation, predict_pahs_removal, predict_pesticide_removal
+from process_sheet import generate_process_sheet, water_footprint, byproduct_process_params
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -202,6 +204,39 @@ def chokepoint_analysis():
                                   d.get('degum','acid'), d.get('route','chemical'),
                                   stages_dict)
     return jsonify(result)
+
+
+@app.route('/api/process-sheet', methods=['POST'])
+def process_sheet_api():
+    d = request.json or {}
+    sheet = generate_process_sheet(d.get('params', {}),
+                                   OIL_MAP.get(d.get('oil', '大豆油'), OilType.SOYBEAN),
+                                   d.get('mass', 100))
+    return jsonify(sheet)
+
+
+@app.route('/api/water-footprint', methods=['POST'])
+def water_fp_api():
+    d = request.json or {}
+    stages_dict = {s["name"]: s for s in d.get("stages", [])}
+    return jsonify(water_footprint(d.get('mass', 100), stages_dict))
+
+
+@app.route('/api/byproduct-params', methods=['POST'])
+def byproduct_params_api():
+    d = request.json or {}
+    return jsonify(byproduct_process_params(d.get('mass', 100)))
+
+
+@app.route('/api/contaminants', methods=['POST'])
+def contaminants_api():
+    d = request.json or {}
+    return jsonify({
+        "GE": predict_ge_formation(d.get('temp', 245), d.get('time', 90)),
+        "MCPD": predict_3mcpd_formation(d.get('temp', 245), d.get('time', 90)),
+        "PAHs": predict_pahs_removal(d.get('earth', 1.2), d.get('carbon', 0.2)),
+        "农药塑化剂": predict_pesticide_removal(d.get('degum', 'acid'), d.get('earth', 1.2), d.get('temp', 245)),
+    })
 
 
 @app.route('/api/calibrate', methods=['POST'])
