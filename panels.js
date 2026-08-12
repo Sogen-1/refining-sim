@@ -1,5 +1,15 @@
-function renderPanels(cm,wf,bpp,bp,ps,bm,rg){
+function renderPanels(cm,wf,bpp,bp,ps,bm,rg,qw){
   var block='';
+  // Quick Wins
+  if(qw&&qw.quick_wins){block+='<div class=stage style=border-left:4px solid #27ae60;margin-top:12px><div class=head style=background:#f0fdf0 onclick="this.nextElementSibling.classList.toggle(\'show\')">💡 分级改进措施 · '+qw.summary+'</div><div class="body show" style=padding:12px>';
+    var levels=['零成本','低成本(<1万元)','中成本(1-10万)','大改造(>10万)'];
+    var bgColors=['#eaf7ea','#f0fdf0','#fef9ee','#fff5f5'];
+    for(var li=0;li<levels.length;li++){var lv=levels[li],items=qw.quick_wins[lv]||[];
+      if(items.length>0){block+='<div style=background:'+bgColors[li]+';padding:8px;margin-bottom:6px;border-radius:4px><div style=font-weight:700;font-size:12px;margin-bottom:4px>'+lv+' ('+items.length+'项)</div>';
+        for(var ii=0;ii<items.length;ii++){var it=items[ii];
+          block+='<div style=background:#fff;padding:6px 8px;margin:3px 0;border-radius:3px;font-size:11px><b>🔧 '+it.措施+'</b><br>操作: '+it.具体操作+'<br><span style=color:#27ae60>效果: '+it.预期效果+'</span> | <span style=color:#888>投入: '+it.投入+'</span></div>'}
+        block+='</div>'}}
+    block+='</div></div>'}
 
   // Benchmark ranking
   if(bm){block+='<div class=stage style=border-left:4px solid #2c3e50;margin-top:12px><div class=head style=background:#f0f4f8 onclick="this.nextElementSibling.classList.toggle(\'show\')">📊 行业对标 · 告诉你处在行业什么水平</div><div class="body show" style=padding:12px><table style=font-size:11px><tr style=font-weight:700><td>指标</td><td>当前值</td><td>行业定位</td><td>参考基准</td><td>优化潜力</td></tr>';
