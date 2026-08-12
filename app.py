@@ -23,6 +23,7 @@ from advanced import monte_carlo_sim, calculate_carbon_footprint, radar_scoring
 from chokepoint import analyze_chokepoints
 from pareto import pareto_optimize
 from standards import check_gb_compliance, byproduct_deep_processing
+from auto_calibrate import auto_calibrate, generate_comparison_report
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -200,6 +201,26 @@ def chokepoint_analysis():
     result = analyze_chokepoints(oil_type, d.get('mass', 100),
                                   d.get('degum','acid'), d.get('route','chemical'),
                                   stages_dict)
+    return jsonify(result)
+
+
+@app.route('/api/calibrate', methods=['POST'])
+def calibrate():
+    """自动校准 - 输入工厂实测数据, 返回最优校准系数"""
+    d = request.json or {}
+    oil_type = OIL_MAP.get(d.get('oil', '大豆油'), OilType.SOYBEAN)
+    plant_data = d.get('data', [])
+    result = auto_calibrate(oil_type, plant_data)
+    return jsonify(result)
+
+
+@app.route('/api/compare-report', methods=['POST'])
+def compare_report():
+    """生成模型 vs 实测对比报告"""
+    d = request.json or {}
+    oil_type = OIL_MAP.get(d.get('oil', '大豆油'), OilType.SOYBEAN)
+    plant_data = d.get('data', [])
+    result = generate_comparison_report(oil_type, plant_data)
     return jsonify(result)
 
 
