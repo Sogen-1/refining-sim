@@ -114,6 +114,8 @@ def analyze_chokepoints(oil_type: OilType, mass_ton: float, degum_type: str,
 
     centrifuge["import_annual_cost"] = round(import_depreciation + import_maintenance, 0)
     centrifuge["domestic_annual_cost"] = round(domestic_depreciation + domestic_maintenance + oil_value_lost, 0)
+    centrifuge["annual_cost_import"] = centrifuge["import_annual_cost"]
+    centrifuge["annual_cost_domestic"] = centrifuge["domestic_annual_cost"]
     centrifuge["annual_saving"] = round(centrifuge["import_annual_cost"] - centrifuge["domestic_annual_cost"], 0)
     centrifuge["domestic_extra_oil_loss_warning"] = (
         f"国产离心机多损失 {extra_oil_loss_ton:.2f}吨油/批 (¥{oil_value_lost/10000:.1f}万/年)" if extra_oil_loss_ton > 0 else ""
@@ -136,6 +138,8 @@ def analyze_chokepoints(oil_type: OilType, mass_ton: float, degum_type: str,
         software["import_price_per_year"] - software["domestic_price_per_year"]
         + software["training_cost_import"] - software["training_cost_domestic"]
     )
+    software["annual_cost_import"] = software["import_price_per_year"] + software["training_cost_import"]
+    software["annual_cost_domestic"] = software["domestic_price_per_year"] + software["training_cost_domestic"]
     software["recommendation"] = "建议切换 — 国产流程模拟软件已成熟,可大幅降低许可费"
     software["saving_desc"] = f"国产流程模拟软件替代进口方案: 年省 ¥{software['annual_saving']/10000:.1f}万"
     results.append(software)
@@ -154,6 +158,8 @@ def analyze_chokepoints(oil_type: OilType, mass_ton: float, degum_type: str,
     ve_recovery = dict(CHOKE_POINTS["VE/甾醇回收工艺"])
     raw_value = dd_total_ton * ve_recovery["dd_oil_price_raw"]
     upgraded_value = dd_total_ton * ve_recovery["dd_oil_ve_value"] * 0.6  # 回收率60%
+    ve_recovery["annual_cost_import"] = round(raw_value, 0)
+    ve_recovery["annual_cost_domestic"] = round(-upgraded_value, 0)  # 负值表示收入
     ve_recovery["annual_saving"] = round(upgraded_value - raw_value, 0)
     ve_recovery["investment"] = ve_recovery["investment_for_plant"]
     ve_recovery["payback_years"] = round(
